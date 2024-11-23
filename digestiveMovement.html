@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Hệ Tiêu Hóa Loài Người - Mô Phỏng</title>
+  <style>
+    /* Đặt nút ở góc trái của màn hình */
+    #backToHomeButton {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      z-index: 1000;
+    }
+
+    #continueSimulationButton {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #FF5722;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <!-- Nút quay lại trang chủ -->
+  <button id="backToHomeButton">
+    Quay lại Trang Chủ
+  </button>
+
+  <!-- Nút tiếp tục mô phỏng thức ăn -->
+  <button id="continueSimulationButton">
+    Tiếp tục Mô Phỏng
+  </button>
+
+  <script type="module" src="digestiveMovement.js"></script>
+  
+  <script>
+    // Sự kiện quay lại trang chủ
+    document.getElementById('backToHomeButton').addEventListener('click', () => {
+      // Mở trang chủ trong một tab mới
+      const newTab = window.open('index.html', '_blank'); 
+      // Đóng tab hiện tại
+      window.close();
+    });
+
+    // Sự kiện tiếp tục mô phỏng thức ăn
+    document.getElementById('continueSimulationButton').addEventListener('click', () => {
+      alert("Mô phỏng thức ăn sẽ tiếp tục..."); // Bạn có thể thay thế bằng hành động mô phỏng thực tế
+    });
+  </script>
+</body>
+</html>

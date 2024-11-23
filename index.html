@@ -4,24 +4,94 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>3D hệ tiêu hóa loài người</title>
+  <style>
+    /* Đặt nút ở góc trái của màn hình */
+    #aboutButton {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      z-index: 1000;
+    }
+
+    #foodMovementButton {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #FF5722;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      z-index: 1000;
+    }
+
+    #continueSimulationButton {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #FF5722;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      z-index: 1000;
+    }
+  </style>
 </head>
 <body>
- 
   <div id="canvas-container"></div>
-<div
-  id="info-box"
-  style="
-    position: absolute;
-    background: rgba(28, 117, 25, 0.7);
-    color: white;
-    padding: 5px;
-    border-radius: 5px;
-    display: none;
-    pointer-events: none;
-    font-family: Arial, sans-serif;
-  "
-></div>
+  <div id="info-box"
+    style="position: absolute; background: rgba(28, 117, 25, 0.7); color: white; padding: 5px; border-radius: 5px; display: none; pointer-events: none; font-family: Arial, sans-serif;">
+  </div>
+  
+  <!-- Nút chuyển hướng sang trang giới thiệu -->
+  <button id="aboutButton">
+    Giới thiệu bản thân
+  </button>
+  
+  <button id="foodMovementButton">
+    Chuyển sang mô phỏng
+  </button>
+
+  <!-- Nút tiếp tục mô phỏng -->
+  <button id="continueSimulationButton">
+    Tiếp tục Mô Phỏng
+  </button>
+
   <script type="module" src="main.js"></script>
   <script type="module" src="maubophan.js"></script>
+  
+  <script>
+    // Sự kiện khi nhấn nút "Giới thiệu bản thân"
+    document.getElementById('aboutButton').addEventListener('click', () => {
+      window.open('about.html', '_blank'); // Mở trang about.html trong tab mới
+    });
+  </script>
+  
+  <script>
+    // Sự kiện khi nhấn nút "Chuyển sang mô phỏng"
+    document.getElementById('foodMovementButton').addEventListener('click', () => {
+      window.open('foodMovement.html', '_blank'); // Mở trang foodMovement.html trong tab mới
+    });
+  </script>
+
+  <script>
+    // Sự kiện khi nhấn nút "Tiếp tục mô phỏng"
+    document.getElementById('continueSimulationButton').addEventListener('click', () => {
+      window.open('digestiveMovement.html', '_blank'); // Mở trang digestiveMovement.html trong tab mới
+    });
+  </script>
+
 </body>
 </html>
