@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D hệ tiêu hóa loài người</title>
+  <title>3D Hệ Tiêu Hóa Loài Người</title>
   <style>
     /* Đặt nút ở góc trái của màn hình */
     #aboutButton {
@@ -47,6 +47,58 @@
       border-radius: 5px;
       z-index: 1000;
     }
+
+    /* Nút VR và AR */
+    #vrButton, #arButton {
+      position: fixed;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      z-index: 1000;
+    }
+
+    #vrButton {
+      top: 10px;
+      left: 10px; /* Nút VR ở góc trái */
+    }
+
+    #arButton {
+      top: 50px;
+      left: 10px; /* Nút AR ở dưới nút VR */
+    }
+
+    /* Thông báo */
+    #statusMessage {
+      position: fixed;
+      top: 100px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 10px;
+      font-size: 16px;
+      display: none;
+      z-index: 2000;
+    }
+
+    /* Nút tắt chức năng VR/AR */
+    #exitButton {
+      position: fixed;
+      top: 100px;
+      left: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #FF5722;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      display: none;
+      z-index: 2001;
+    }
   </style>
 </head>
 <body>
@@ -61,13 +113,26 @@
   </button>
   
   <button id="foodMovementButton">
-    Chuyển sang mô phỏng
+    Chuyển sang mô phỏng(ruột già)
   </button>
 
   <!-- Nút tiếp tục mô phỏng -->
   <button id="continueSimulationButton">
-    Tiếp tục Mô Phỏng
+    Tiếp tục Mô Phỏng(ruột non)
   </button>
+
+  <!-- Nút VR và AR -->
+  <button id="vrButton">
+    Bật Chế Độ VR
+  </button>
+
+  <button id="arButton">
+    Bật Chế Độ AR
+  </button>
+
+  <!-- Thông báo và nút tắt -->
+  <div id="statusMessage"></div>
+  <button id="exitButton">Tắt VR/AR</button>
 
   <script type="module" src="main.js"></script>
   <script type="module" src="maubophan.js"></script>

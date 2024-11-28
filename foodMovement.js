@@ -1,46 +1,25 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 
-// Tạo renderer, scene và camera
+// Tạo renderer, scene, và camera
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
-document.getElementById('canvas-container').appendChild(renderer.domElement);
+document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-
-// Tạo nhiều camera
-const cameras = [];
-
-const camera1 = new THREE.PerspectiveCamera(
+const camera = new THREE.PerspectiveCamera(
   75,
   window.innerWidth / window.innerHeight,
   0.1,
   1000
 );
-camera1.position.set(0, 5, 10); // Góc nhìn trên cao
-cameras.push(camera1);
-
-const camera2 = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
-camera2.position.set(0, 1, 5); // Góc nhìn bình thường
-cameras.push(camera2);
-
-const camera3 = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
-camera3.position.set(-5, 5, 5); // Góc nhìn từ bên trái
-cameras.push(camera3);
-
-// Chọn camera hiện tại
-let currentCamera = camera1;
+camera.position.set(0, 5, 10);
 
 // Ánh sáng
 const pointLight = new THREE.PointLight(0xffffff, 1, 100);
@@ -50,138 +29,196 @@ scene.add(pointLight);
 const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
 scene.add(hemisphereLight);
 
-// Load mô hình
+// Loaders
 const loader = new GLTFLoader();
-let model, ruotGIAMesh;
-let wasteMeshes = [];
+let ruotGIAMesh;
+let wasteMesh;
+const foodMeshes = [];
 
-// Hàm tạo chất thải
-function createWaste(count) {
-  for (let i = 0; i < count; i++) {
-    const wasteGeometry = new THREE.SphereGeometry(0.3, 16, 16); // Kích thước chất thải
-    const wasteMaterial = new THREE.MeshStandardMaterial({ color: 0x8b4513 }); // Màu nâu
-    const wasteMesh = new THREE.Mesh(wasteGeometry, wasteMaterial);
-    scene.add(wasteMesh);
-    wasteMeshes.push(wasteMesh); // Lưu chất thải vào mảng
-  }
-}
+// Hiệu ứng (EffectComposer)
+const composer = new EffectComposer(renderer);
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
 
-// Di chuyển chất thải qua toàn bộ ruột già
-function moveWasteThroughColon() {
-  if (!ruotGIAMesh || wasteMeshes.length === 0) return;
+const outlinePass = new OutlinePass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  scene,
+  camera
+);
+outlinePass.edgeStrength = 3.0;
+outlinePass.edgeGlow = 0.5;
+outlinePass.edgeThickness = 1.0;
+outlinePass.visibleEdgeColor.set('#ffffff');
+outlinePass.hiddenEdgeColor.set('#000000');
+composer.addPass(outlinePass);
 
-  const path = new THREE.CurvePath();
+const fxaaPass = new ShaderPass(FXAAShader);
+fxaaPass.uniforms['resolution'].value.set(
+  1 / window.innerWidth,
+  1 / window.innerHeight
+);
+composer.addPass(fxaaPass);
 
-  // Các điểm đại diện cho đường cong ruột già (đặt gần đúng, điều chỉnh theo mô hình thực tế)
-  const points = [
-    new THREE.Vector3(2, 2, 0),   // Điểm đầu ruột già
-    new THREE.Vector3(2.5, 1.8, 0.5),
-    new THREE.Vector3(2, 1.5, 1),
-    new THREE.Vector3(1.5, 1, 0.5),
-    new THREE.Vector3(1, 0.5, 0),
-    new THREE.Vector3(0, 0, -0.5), // Điểm cuối ruột già
-  ];
-
-  const curve = new THREE.CatmullRomCurve3(points, false); // Đường cong ruột già
-  path.add(curve);
-
-  // Hiển thị đường cong (debug)
-  const curveGeometry = new THREE.TubeGeometry(curve, 50, 0.05, 8, false);
-  const curveMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-  const curveMesh = new THREE.Mesh(curveGeometry, curveMaterial);
-  scene.add(curveMesh);
-
-  const speed = 0.005; // Tốc độ di chuyển
-
-  wasteMeshes.forEach((wasteMesh, index) => {
-    let t = index * 0.1; // Vị trí ban đầu của mỗi chất thải
-
-    const animateWaste = () => {
-      t += speed;
-      if (t > 1) t = 0; // Khi đến cuối, quay lại đầu
-
-      // Lấy vị trí và hướng từ đường cong
-      const position = curve.getPointAt(t);
-      const tangent = curve.getTangentAt(t).normalize();
-
-      // Cập nhật vị trí và xoay chất thải
-      wasteMesh.position.copy(position);
-      wasteMesh.lookAt(position.clone().add(tangent));
-
-      requestAnimationFrame(animateWaste);
-    };
-
-    animateWaste();
-  });
-}
-
-// Load mô hình ruột và thiết lập
+// Load mô hình và hiển thị riêng ruột già
 loader.load(
   '/people1.glb',
   (gltf) => {
-    model = gltf.scene;
+    const model = gltf.scene;
 
     model.traverse((child) => {
-      if (child.isMesh) {
-        if (child.name === 'ruot_GIA') {
-          ruotGIAMesh = child;
+      if (child.isMesh && child.name === 'ruot_GIA') {
+        ruotGIAMesh = child;
 
-          // Làm ruột già trong suốt
-          ruotGIAMesh.material = new THREE.MeshStandardMaterial({
-            color: 0xffd700, // Màu vàng nhạt
-            transparent: true,
-            opacity: 0.3, // Độ trong suốt
-            depthWrite: false, // Cho phép hiển thị vật thể bên trong
-          });
-        }
+        // Làm ruột già trong suốt
+        ruotGIAMesh.material = new THREE.MeshStandardMaterial({
+          color: 0xffd700,
+          transparent: true,
+          opacity: 0.3,
+          depthWrite: false,
+        });
+
+        scene.add(ruotGIAMesh);
+        outlinePass.selectedObjects = [ruotGIAMesh];
       }
     });
 
     if (!ruotGIAMesh) {
-      console.error('Ruột già không tìm thấy trong mô hình!');
+      console.error('Không tìm thấy ruột già trong mô hình!');
       return;
     }
 
-    model.scale.set(1, 1, 1);
-    scene.add(model);
-
-    // Tạo chất thải và bắt đầu chuyển động
-    createWaste(5); // Tạo 5 chất thải
-    moveWasteThroughColon(); // Bắt đầu di chuyển chất thải
+    createFoodModels(10); // Tạo 10 phân tử thức ăn
+    moveFoodAlongSpiral(); // Bắt đầu di chuyển thức ăn theo đường xoắn ốc
+    createWaste(); // Tạo chất thải
+    animateWaste(); // Di chuyển chất thải trong ruột già
   },
   undefined,
-  (error) => {
-    console.error('Lỗi khi tải mô hình:', error);
-  }
+  (error) => console.error('Lỗi khi tải mô hình:', error)
 );
 
-// OrbitControls
-const controls = new OrbitControls(camera1, renderer.domElement);
-controls.enableDamping = true;
+// Tạo thức ăn dưới dạng mô hình GLB
+function createFoodModels(count) {
+  for (let i = 0; i < count; i++) {
+    loader.load(
+      '/untitled.glb', // Đường dẫn đến tệp GLB của phân tử thức ăn
+      (gltf) => {
+        const foodModel = gltf.scene;
 
-// Hàm thay đổi camera
-function switchCamera() {
-  // Lựa chọn camera tiếp theo trong mảng cameras
-  const currentIndex = cameras.indexOf(currentCamera);
-  const nextIndex = (currentIndex + 1) % cameras.length;
-  currentCamera = cameras[nextIndex];
+        // Đặt vị trí ngẫu nhiên cho phân tử thức ăn trong khu vực của ruột già
+        const boundingBox = new THREE.Box3().setFromObject(ruotGIAMesh);
+        const size = boundingBox.getSize(new THREE.Vector3());
+        const min = boundingBox.min;
 
-  // Cập nhật controls với camera mới
-  controls.object = currentCamera;
+        foodModel.position.set(
+          THREE.MathUtils.randFloat(min.x, min.x + size.x),
+          THREE.MathUtils.randFloat(min.y, min.y + size.y),
+          THREE.MathUtils.randFloat(min.z, min.z + size.z)
+        );
+
+        scene.add(foodModel);
+        foodMeshes.push(foodModel);
+      },
+      undefined,
+      (error) => console.error('Lỗi khi tải mô hình phân tử thức ăn:', error)
+    );
+  }
 }
 
-// Thêm sự kiện chuyển đổi camera
-window.addEventListener('keydown', (event) => {
-  if (event.key === 'c') { // Nhấn 'C' để chuyển camera
-    switchCamera();
+// Tạo chất thải (một hình cầu)
+function createWaste() {
+  const wasteGeometry = new THREE.SphereGeometry(0.2, 16, 16); // Đường kính 0.2 cho chất thải
+  const wasteMaterial = new THREE.MeshStandardMaterial({ color: 0x8b4513 }); // Màu nâu cho chất thải
+  wasteMesh = new THREE.Mesh(wasteGeometry, wasteMaterial);
+
+  // Đặt vị trí ban đầu của chất thải
+  const boundingBox = new THREE.Box3().setFromObject(ruotGIAMesh);
+  const size = boundingBox.getSize(new THREE.Vector3());
+  const min = boundingBox.min;
+
+  wasteMesh.position.set(min.x, min.y, min.z);
+  scene.add(wasteMesh);
+}
+
+// Di chuyển thức ăn theo đường xoắn ốc trong không gian 3D
+function moveFoodAlongSpiral() {
+  const speed = 0.05;
+  const radius = 2; // Bán kính của đường xoắn ốc
+  const height = 10; // Chiều cao của ống ruột già
+
+  let angles = foodMeshes.map(() => Math.random() * Math.PI * 2); // Khởi tạo góc ngẫu nhiên cho mỗi phân tử
+
+  function animate() {
+    if (!ruotGIAMesh) return;
+
+    foodMeshes.forEach((foodMesh, index) => {
+      // Tính toán vị trí mới theo đường xoắn ốc
+      angles[index] += speed; // Cập nhật góc theo tốc độ
+
+      // Đảm bảo góc không vượt quá 2π (1 vòng quay)
+      if (angles[index] > Math.PI * 2) {
+        angles[index] -= Math.PI * 2;
+      }
+
+      const x = radius * Math.cos(angles[index]);  // Tính toán vị trí x theo góc
+      const y = (index * speed) % height;  // Di chuyển theo chiều cao của ống
+      const z = radius * Math.sin(angles[index]);  // Tính toán vị trí z theo góc
+
+      foodMesh.position.set(x, y, z); // Cập nhật vị trí mới của thức ăn
+    });
+
+    requestAnimationFrame(animate);
   }
-});
+
+  animate();
+}
+
+// Di chuyển chất thải trong ruột già
+function animateWaste() {
+  const speed = 0.02;
+  let direction = new THREE.Vector3(0, 0, -1); // Chất thải di chuyển theo trục Z
+
+  function animate() {
+    if (!ruotGIAMesh || !wasteMesh) return;
+
+    const boundingBox = new THREE.Box3().setFromObject(ruotGIAMesh);
+    const newPosition = wasteMesh.position.clone().addScaledVector(direction, speed);
+
+    // Kiểm tra xem chất thải có ra khỏi khu vực ruột già không
+    if (!boundingBox.containsPoint(newPosition)) {
+      // Nếu ra ngoài khu vực, chất thải quay lại vị trí ban đầu
+      wasteMesh.position.set(boundingBox.min.x, boundingBox.min.y, boundingBox.min.z);
+    } else {
+      wasteMesh.position.copy(newPosition);
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  animate();
+}
+
+// OrbitControls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
 
 // Vòng lặp render
 function animate() {
   controls.update();
-  renderer.render(scene, currentCamera);
+  composer.render();
   requestAnimationFrame(animate);
 }
 
 animate();
+
+// Xử lý sự kiện nhấn nút
+const startButton = document.getElementById('startButton');
+const psImage = document.getElementById('psImage');
+
+startButton.addEventListener('click', () => {
+  // Hiển thị hình ảnh khi nhấn nút
+  psImage.style.display = 'block';
+
+  // Bắt đầu di chuyển thức ăn
+  moveFoodAlongSpiral();
+  animateWaste();
+});

@@ -23,26 +23,55 @@
   
   <!-- Nút quay lại -->
   <button id="backButton" style="
-    position: fixed; /* Vị trí cố định */
-    bottom: 10px;    /* Cách cạnh dưới 10px */
-    right: 10px;     /* Cách cạnh phải 10px */
+    position: fixed; 
+    bottom: 10px; 
+    right: 10px; 
+    padding: 10px 20px; 
+    font-size: 16px; 
+    cursor: pointer; 
+    background-color: #FF5722; 
+    color: white; 
+    border: none; 
+    border-radius: 5px; 
+    z-index: 1000;
+  ">
+    Quay lại
+  </button>
+
+  <!-- Nút hiển thị thông tin quá trình -->
+  <button id="infoButton" style="
+    position: fixed;
+    bottom: 60px;
+    right: 10px;
     padding: 10px 20px;
     font-size: 16px;
     cursor: pointer;
-    background-color: #FF5722;
+    background-color: #4CAF50;
     color: white;
     border: none;
     border-radius: 5px;
     z-index: 1000;
   ">
-    Quay lại
+    Hiển thị thông tin
   </button>
-  
+
   <script type="module" src="foodMovement.js"></script>
+
   <script>
     // Thêm sự kiện khi nhấn nút "Quay lại"
     document.getElementById('backButton').addEventListener('click', () => {
       window.location.href = 'index.html'; // Chuyển hướng về trang chính
+    });
+
+    // Thêm sự kiện khi nhấn nút "Hiển thị thông tin"
+    document.getElementById('infoButton').addEventListener('click', () => {
+      const infoBox = document.getElementById('info-box');
+      if (infoBox.style.display === 'none' || infoBox.style.display === '') {
+        infoBox.style.display = 'block'; // Hiển thị thông tin
+        infoBox.innerHTML = 'Đây là quá trình chuyển động thức ăn trong ruột già. Thức ăn sẽ di chuyển liên tục!';
+      } else {
+        infoBox.style.display = 'none'; // Ẩn thông tin
+      }
     });
   </script>
 </body>

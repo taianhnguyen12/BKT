@@ -1,14 +1,23 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+import { ARButton } from 'three/examples/jsm/webxr/ARButton.js';
+import { TextureLoader } from 'three';
 
 // Tạo renderer, scene và camera
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.getElementById('canvas-container').appendChild(renderer.domElement);
 
+// Kích hoạt WebXR (VR và AR)
+renderer.xr.enabled = true;
+document.body.appendChild(VRButton.createButton(renderer));
+document.body.appendChild(ARButton.createButton(renderer));
+
 const scene = new THREE.Scene();
 
+// Tạo camera
 const camera = new THREE.PerspectiveCamera(
   75,
   window.innerWidth / window.innerHeight,
@@ -17,18 +26,41 @@ const camera = new THREE.PerspectiveCamera(
 );
 camera.position.set(0, 1, 5); // Đặt vị trí camera
 
-// Ánh sáng
-const pointLight = new THREE.PointLight(0xffffff, 1, 100);
-pointLight.position.set(10, 10, 10);
+// Ánh sáng khuếch tán (Ambient Light)
+const ambientLight = new THREE.AmbientLight(0x404040, 1); // Màu sáng nhẹ và cường độ sáng
+scene.add(ambientLight);
+
+// Ánh sáng điểm (Point Light)
+const pointLight = new THREE.PointLight(0xffffff, 1, 100); // Cường độ sáng: 1, khoảng cách ánh sáng: 100
+pointLight.position.set(10, 10, 10); // Vị trí ánh sáng
 scene.add(pointLight);
 
-const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
+// Ánh sáng khuếch tán (Directional Light)
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // Cường độ ánh sáng mạnh
+directionalLight.position.set(5, 10, 5); // Vị trí nguồn ánh sáng
+directionalLight.target.position.set(0, 0, 0); // Đảm bảo ánh sáng chiếu về phía trung tâm của scene
+scene.add(directionalLight);
+scene.add(directionalLight.target); // Ánh sáng chiếu vào đối tượng
+
+// Ánh sáng phản xạ (Spot Light)
+const spotLight = new THREE.SpotLight(0xffffff, 1, 50, Math.PI / 6, 0.5, 2);
+spotLight.position.set(0, 10, 0);
+spotLight.target.position.set(0, 0, 0); // Nhắm vào trung tâm cảnh
+scene.add(spotLight);
+scene.add(spotLight.target);
+
+// Ánh sáng môi trường kết hợp với ánh sáng phản xạ tạo sự chi tiết hơn
+const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5); // Đảm bảo môi trường có ánh sáng mềm mại
 scene.add(hemisphereLight);
+
+// Tải kết cấu (Texture)
+const textureLoader = new TextureLoader();
+const texture = textureLoader.load('./public/ps.jpg');  // Đảm bảo rằng bạn có đường dẫn đúng cho texture
 
 // Load mô hình
 const loader = new GLTFLoader();
 let model;
-let ruotNonMesh, ruotGIAMesh; // Biến để lưu đối tượng ruot_non và ruot_GIA
+let ruotNonMesh, ruotGIAMesh, foodMesh, ongThoMesh; // Biến để lưu các đối tượng
 
 // Thông tin về các bộ phận
 const partDescriptions = {
@@ -37,8 +69,8 @@ const partDescriptions = {
   da_day: 'Dạ dày là nơi chứa và tiêu hóa thức ăn.',
   gan: 'Gan là cơ quan quan trọng trong việc giải độc và chuyển hóa.',
   thuc_quan: 'Thực quản vận chuyển thức ăn từ miệng đến dạ dày.',
-  ong_tho: 'truyền thức ăn xuống',
-  tuy_tang: 'vừa có chức năng ngoại tiết (tiết ra dịch tụy đổ vào ruột giúp tiêu hóa thức ăn) vừa có chức năng nội tiết (như tiết insulin đổ vào máu có tác dụng điều hòa đường huyết...).',
+  ong_tho: 'Truyền thức ăn xuống.',
+  tuy_tang: 'Tuyến tụy có chức năng tiết dịch tiêu hóa và insulin.',
 };
 
 // Thông tin về màu sắc của các bộ phận
@@ -64,6 +96,7 @@ function showInfo(partName, event) {
   }
 }
 
+// Load mô hình con người
 loader.load(
   '/people1.glb', // Đường dẫn mô hình GLTF
   (gltf) => {
@@ -78,16 +111,22 @@ loader.load(
           child.material = new THREE.MeshStandardMaterial({ color: partColors[partName] });
         }
 
+        // Sử dụng texture cho một bộ phận nếu có
+        if (partName === 'ruot_non') {
+          child.material.map = texture; // Áp dụng texture cho ruột non
+        }
+
+        // Lưu đối tượng "ong_tho" để thức ăn có thể đi vào
+        if (child.name === 'ong_tho') {
+          ongThoMesh = child;  // Lưu đối tượng "ống thở"
+        }
+
         // Kiểm tra và lưu vị trí gốc của các đối tượng
         if (child.name === 'ruot_non') {
           ruotNonMesh = child;
-          ruotNonMesh.geometry.attributes.position.originalPosition =
-            ruotNonMesh.geometry.attributes.position.array.slice();
         }
         if (child.name === 'ruot_GIA') {
           ruotGIAMesh = child;
-          ruotGIAMesh.geometry.attributes.position.originalPosition =
-            ruotGIAMesh.geometry.attributes.position.array.slice();
         }
       }
     });
@@ -100,6 +139,17 @@ loader.load(
     console.error('Lỗi khi tải mô hình:', error);
   }
 );
+
+// Load mô hình thức ăn
+let food;
+loader.load('/untitled.glb', (gltf) => {
+  food = gltf.scene;
+  food.scale.set(0.1, 0.1, 0.1);  // Thay đổi kích thước thức ăn
+  food.position.set(0, 3, 5);  // Vị trí ban đầu của thức ăn (vị trí cao hơn để nó rơi xuống)
+  scene.add(food);
+}, undefined, (error) => {
+  console.error('Lỗi khi tải mô hình thức ăn:', error);
+});
 
 // OrbitControls
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -138,40 +188,31 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Hàm biến dạng cho ruột
-function deformMesh(mesh, time, speed, amplitude) {
-  if (!mesh) return;
+// Hàm di chuyển thức ăn vào ống thở
+function moveFoodToEsophagus() {
+  if (!food || !ongThoMesh) return;
 
-  const position = mesh.geometry.attributes.position;
-  const originalPosition = position.originalPosition;
-  const count = position.count;
+  const speed = 0.03; // Tốc độ di chuyển
 
-  for (let i = 0; i < count; i++) {
-    const x = originalPosition[i * 3]; // Giá trị x gốc
-    const y = originalPosition[i * 3 + 1]; // Giá trị y gốc
-    const z = originalPosition[i * 3 + 2]; // Giá trị z gốc
+  // Đặt mục tiêu di chuyển vào vị trí của ống thở
+  const targetPosition = ongThoMesh.position.clone();
+  targetPosition.y += 0.5; // Điều chỉnh sao cho thức ăn đi vào đúng ống thở
 
-    // Hàm sóng sin cho biến dạng
-    const offset = Math.sin(time * speed + y * 5) * amplitude; // Tăng giảm giá trị y
-    position.array[i * 3 + 1] = y + offset; // Biến dạng trên trục y
+  // Tính toán sự chuyển động dọc theo trục y
+  if (food.position.y > targetPosition.y) {
+    food.position.y -= speed; // Di chuyển thức ăn xuống
+  } else {
+    food.position.y = targetPosition.y; // Dừng lại khi đã vào trong ống thở
   }
-
-  position.needsUpdate = true; // Đánh dấu cần cập nhật
 }
 
 // Vòng lặp render
-function animate(time) {
-  time *= 0.001; // Chuyển đổi thời gian sang giây
-
-  if (ruotNonMesh) {
-    deformMesh(ruotNonMesh, time, 2.0, 0.1); // Co bóp nhanh với biên độ nhỏ
-  }
-  if (ruotGIAMesh) {
-    deformMesh(ruotGIAMesh, time, 1.0, 0.15); // Co bóp chậm với biên độ lớn hơn
-  }
-
+function animate() {
+  moveFoodToEsophagus(); // Di chuyển thức ăn vào ống thở
   controls.update();
-  renderer.render(scene, camera);
-  requestAnimationFrame(animate);
+
+  renderer.setAnimationLoop(() => {
+    renderer.render(scene, camera);
+  });
 }
 animate();
